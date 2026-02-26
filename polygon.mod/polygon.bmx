@@ -1,6 +1,6 @@
 ' ISC License
 ' 
-' Copyright (c) 2023-2024, Bruce A Henderson
+' Copyright (c) 2023-2026, Bruce A Henderson
 ' 
 ' Permission to use, copy, modify, and/or distribute this software for any purpose
 ' with or without fee is hereby granted, provided that the above copyright notice
@@ -21,12 +21,14 @@ bbdoc: Math/Polygons
 End Rem
 Module Math.Polygon
 
-ModuleInfo "Version: 1.02"
+ModuleInfo "Version: 1.03"
 ModuleInfo "Author: Bruce A Henderson"
 ModuleInfo "License: ISC"
 ModuleInfo "earcut - Copyright: 2015 mapbox"
-ModuleInfo "Copyright: 2023-2024 Bruce A Henderson"
+ModuleInfo "Copyright: 2023-2026 Bruce A Henderson"
 
+ModuleInfo "History: 1.03"
+ModuleInfo "History: Update to earcut 2.2.x.f36ced7"
 ModuleInfo "History: 1.02"
 ModuleInfo "History: Update to Clipper 1.3.0.a4ae9e4"
 ModuleInfo "History: 1.01"

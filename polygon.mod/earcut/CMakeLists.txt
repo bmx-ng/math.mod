@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.10)
 project(earcut_hpp LANGUAGES CXX C)
 
 option(EARCUT_BUILD_TESTS "Build the earcut test program" ON)
@@ -22,17 +22,15 @@ target_include_directories(earcut_hpp INTERFACE
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-set(CMAKE_CXX_STANDARD 11)
-
-if("${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION}" GREATER 3.7)
-    # Allow C++11 requirements to propagate when using recent CMake versions
-    target_compile_features(earcut_hpp INTERFACE cxx_std_11)
-endif()
+set(CMAKE_CXX_STANDARD 14)
 
 file(GLOB FIXTURE_SOURCE_FILES test/fixtures/*.cpp test/fixtures/*.hpp)
 source_group(fixtures FILES ${FIXTURE_SOURCE_FILES})
 add_library(fixtures OBJECT ${FIXTURE_SOURCE_FILES})
-target_compile_options(fixtures PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/Od>)
+target_compile_options(fixtures PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/Od>
+    $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-ffp-contract=off>
+)
 
 # In CMake 3.12, use target_link_libraries(fixtures PUBLIC earcut_hpp libtess2).
 # Since we support down to CMake 3.2, we need to manually propagate usage requirements of earcut_hpp
@@ -87,13 +85,31 @@ endif()
 
 if (EARCUT_BUILD_TESTS)
     enable_testing()
-    add_executable(tests test/tap.cpp test/tap.hpp test/test.cpp $<TARGET_OBJECTS:fixtures>)
-    target_link_libraries(tests PRIVATE earcut_hpp common)
+
+    # GoogleTest setup
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
+    set(BUILD_GTEST ON CACHE BOOL "" FORCE)
+    add_subdirectory(vendor/googletest)
+
+    add_executable(tests test/test.cpp $<TARGET_OBJECTS:fixtures>)
+    target_link_libraries(tests PRIVATE earcut_hpp common gtest gtest_main)
+
+    # Fix floating-point precision issues on different architectures (see issues #97 and #103)
+    target_compile_options(tests PRIVATE
+        $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-ffp-contract=off>
+    )
+
     add_test(NAME earcut_tests COMMAND tests)
 endif()
 if (EARCUT_BUILD_BENCH)
+    # Google Benchmark setup
+    set(BENCHMARK_ENABLE_TESTING OFF CACHE BOOL "" FORCE)
+    set(BENCHMARK_ENABLE_GTEST_TESTS OFF CACHE BOOL "" FORCE)
+    add_subdirectory(vendor/benchmark)
+
     add_executable(bench test/bench.cpp $<TARGET_OBJECTS:fixtures>)
-    target_link_libraries(bench PRIVATE earcut_hpp common)
+    target_link_libraries(bench PRIVATE earcut_hpp common benchmark::benchmark)
 endif()
 if (EARCUT_BUILD_VIZ)
     add_executable(viz test/viz.cpp $<TARGET_OBJECTS:fixtures>)
@@ -121,11 +137,11 @@ if (EARCUT_BUILD_VIZ)
         set(GLFW_BUILD_TESTS OFF CACHE BOOL "Build the GLFW test programs" FORCE)
         set(GLFW_BUILD_DOCS OFF CACHE BOOL "Build the GLFW documentation" FORCE)
         set(GLFW_INSTALL OFF CACHE BOOL "Generate installation target" FORCE)
-        add_subdirectory(glfw)
+        add_subdirectory(vendor/glfw)
     endif()
-    
+
     target_compile_definitions(viz PRIVATE GL_SILENCE_DEPRECATION)
-    
+
     # TODO: Using old variables for OpenGL package since they were added in CMake 3.8
     target_link_libraries(viz PRIVATE earcut_hpp common glfw ${OPENGL_LIBRARIES})
     target_include_directories(viz PRIVATE ${OPENGL_INCLUDE_DIR})
